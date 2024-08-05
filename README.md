@@ -13,6 +13,7 @@ pnpm dev
 # or
 bun dev
 ```
+
 # Next.js Starter Project
 
 This is a simple Next.js starter project that displays a blog post on the landing page. The project is set up using TypeScript and Tailwind CSS.
