@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "21"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run format check
+        run: npm run check-format
+
+      - name: Run lint check
+        run: npm run check-lint
+
+      - name: Run type check
+        run: npm run check-types
+
+      - name: Build project
+        run: npm run build
+
+      - name: Test all
+        run: npm run test-all
