@@ -1,3 +1,7 @@
 {
-  "extends": ["next", "prettier"]
+  "extends": ["next", "prettier"],
+  "rules": {
+    "semi": ["error", "always"],
+    "quotes": ["error", "double"]
+  }
 }
