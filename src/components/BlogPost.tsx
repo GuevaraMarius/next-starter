@@ -1,4 +1,8 @@
 import React from "react";
+import { Card, Typography, Space } from "antd";
+import { ArrowRightOutlined } from "@ant-design/icons";
+
+const { Title, Paragraph, Text, Link } = Typography;
 
 interface BlogPostProps {
   title: string;
@@ -14,25 +18,20 @@ const BlogPost: React.FC<BlogPostProps> = ({
   link,
 }) => {
   return (
-    <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h1 role="heading" className="text-2xl font-bold mb-2">
-        {title}
-      </h1>
-      <p role="description" className="text-gray-700 mb-4">
-        {description}
-      </p>
-      <p role="date" className="text-gray-500 mb-4">
-        {date}
-      </p>
-      <a
-        href={link}
-        role="link"
-        target="_blank"
-        className="text-blue-500 hover:underline"
-      >
-        Read more
-      </a>
-    </div>
+    <Card>
+      <Space direction="vertical" size="middle">
+        <Title level={3}>{title}</Title>
+        <Paragraph role="description" ellipsis={{ rows: 3, expandable: false }}>
+          {description}
+        </Paragraph>
+        <Text role="date" type="secondary">
+          {date}
+        </Text>
+        <Link role="link" href={link} target="_blank">
+          Read more <ArrowRightOutlined />
+        </Link>
+      </Space>
+    </Card>
   );
 };
 
