@@ -10,6 +10,7 @@ export default function App({ Component, pageProps }: AppProps) {
         token: {
           colorPrimary: "#c2cb16",
           colorInfo: "#c2cb16",
+          colorIcon: "#c2cb16",
         },
         components: {
           Button: {
@@ -21,14 +22,15 @@ export default function App({ Component, pageProps }: AppProps) {
           Input: {
             paddingBlock: 10,
             colorBgContainer: "rgb(243,244,246)",
-            colorIcon: "rgb(194,203,22)",
+            colorIcon: "#c2cb16",
             colorIconHover: "rgb(194,203,22)",
           },
           Typography: {
+            fontFamilyCode: "Apple Color Emoji",
             marginXS: 1,
             marginXXS: 1,
             paddingSM: 1,
-            titleMarginBottom: "0",
+            titleMarginBottom: "10px",
             titleMarginTop: "0",
           },
         },

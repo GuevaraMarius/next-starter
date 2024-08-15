@@ -31,3 +31,62 @@ body {
     text-wrap: balance;
   }
 }
+
+.draggable-table .ant-table-thead > tr > th {
+  background-color: #f8f8f8;
+  font-weight: bold;
+  text-align: left;
+}
+
+.draggable-table .ant-table-tbody > tr > td {
+  padding: 8px 16px;
+}
+
+.draggable-table .ant-table-tbody > tr > td:first-child {
+  width: 40px;
+  text-align: center;
+  cursor: grab;
+}
+
+.draggable-table .ant-checkbox-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.draggable-table .ant-tag {
+  border-radius: 16px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.draggable-table .ant-table-tbody > tr {
+  transition: background-color 0.3s ease;
+}
+
+.draggable-table .ant-table-tbody > tr:hover {
+  background-color: #f6f6f6;
+}
+
+.draggable-table .anticon {
+  font-size: 18px;
+}
+
+.draggable-table .ant-tooltip {
+  margin-left: 8px;
+}
+
+.draggable-table .drop-over-downward {
+  border-bottom: 2px solid #1890ff;
+}
+
+.draggable-table .drop-over-upward {
+  border-top: 2px solid #1890ff;
+}
+
+.draggable-table .ant-table-tbody > tr > td:last-child {
+  text-align: center;
+}
+
+.draggable-table .ant-table-tbody > tr > td:last-child .ant-checkbox {
+  display: inline-block;
+}

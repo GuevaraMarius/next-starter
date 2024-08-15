@@ -103,7 +103,7 @@ const Signup = () => {
               </Button>
             </div>
 
-            <Button type="default" className="my-auto mx-4" href="/register">
+            <Button type="default" className="my-auto mx-4" href="/login">
               Login <LoginOutlined />
             </Button>
           </div>

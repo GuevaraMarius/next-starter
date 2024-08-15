@@ -61,7 +61,7 @@ const Login = () => {
                   </Button>
                 </Form.Item>
                 <Form.Item>
-                  <Button type="primary" href="/login">
+                  <Button type="primary" href="/dashboard">
                     Login <LoginOutlined />
                   </Button>
                 </Form.Item>
