@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, Typography, Space } from "antd";
+import { Card, Typography, Space, Button } from "antd";
 import { ArrowRightOutlined } from "@ant-design/icons";
 
 const { Title, Paragraph, Text, Link } = Typography;
@@ -28,7 +28,9 @@ const BlogPost: React.FC<BlogPostProps> = ({
           {date}
         </Text>
         <Link role="link" href={link} target="_blank">
-          Read more <ArrowRightOutlined />
+          <Button type="primary">
+            Read more <ArrowRightOutlined />
+          </Button>
         </Link>
       </Space>
     </Card>
