@@ -1,229 +1,443 @@
-import React, { useState, FC } from "react";
-import { Table, Tag, Space, Checkbox, Tooltip } from "antd";
+import React, { useState, FC, useEffect } from "react";
+import {
+  Table,
+  Tag,
+  Space,
+  Checkbox,
+  Tooltip,
+  Modal,
+  Form,
+  Button,
+  Row,
+  Col,
+  DatePicker,
+  Input,
+  message,
+} from "antd";
 import { ColumnsType } from "antd/es/table";
-import { EditOutlined, DeleteOutlined, DragOutlined } from "@ant-design/icons";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
-import classNames from "classnames";
+import {
+  EditOutlined,
+  DeleteOutlined,
+  HolderOutlined,
+  CalendarOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import {
+  useFetchTasksQuery,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
+  useUpdateTaskOrderMutation,
+} from "@/lib/slices/apiSlice";
+const { TextArea } = Input;
 
 interface DataType {
-  key: string;
+  id: string;
+  title: string;
+  deadline: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
   status: string;
-  due: string;
-  task: string;
-  created: string;
-  edited?: string;
-  completed: boolean;
 }
 
-type DragItem = {
-  index: number;
-};
+const DraggableTable: FC<{ data: DataType[] }> = ({ data }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [form] = Form.useForm();
+  const {
+    data: tasksResponse,
+    isLoading,
+    refetch,
+  } = useFetchTasksQuery(undefined, {
+    pollingInterval: 5000,
+  });
+  const [updateTask] = useUpdateTaskMutation();
+  const [deleteTask] = useDeleteTaskMutation();
+  const [updateTaskOrder] = useUpdateTaskOrderMutation();
+  const [dataSource, setDataSource] = useState<DataType[]>([]);
+  const [editingTask, setEditingTask] = useState<DataType | null>(null);
+  const [deletingTask, setDeletingTask] = useState<DataType | null>(null);
+  const [viewingTask, setViewingTask] = useState<DataType | null>(null);
+  useEffect(() => {
+    setDataSource(data);
+  }, [data]);
 
-interface DraggableBodyRowProps
-  extends React.HTMLAttributes<HTMLTableRowElement> {
-  index: number;
-  moveRow: (dragIndex: number, hoverIndex: number) => void;
-}
+  const handleEdit = (task: DataType) => {
+    setEditingTask(task);
+    setIsModalOpen(true);
+    form.setFieldsValue({
+      title: task.title,
+      deadline: dayjs(task.deadline),
+      description: task.description,
+    });
+  };
 
-const DraggableBodyRow: FC<DraggableBodyRowProps> = ({
-  index,
-  moveRow,
-  className,
-  style,
-  ...restProps
-}) => {
-  const ref = React.useRef<HTMLTableRowElement>(null);
-  const [{ isOver, dropClassName }, drop] = useDrop({
-    accept: "row",
-    collect: (monitor) => {
-      const item = monitor.getItem<DragItem>();
-      const dragIndex = item ? item.index : -1;
-      if (dragIndex === index) {
-        return {};
+  const handleDelete = (task: DataType) => {
+    setDeletingTask(task);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deletingTask) {
+      try {
+        await deleteTask(deletingTask.id).unwrap();
+        message.success("Task deleted successfully!");
+        setDeletingTask(null);
+        refetch();
+      } catch (error: any) {
+        message.error(`Failed to delete task: ${error.message}`);
       }
-      return {
-        isOver: monitor.isOver(),
-        dropClassName:
-          dragIndex < index ? "drop-over-downward" : "drop-over-upward",
+    }
+  };
+
+  const handleEditSave = async (values: any) => {
+    if (editingTask) {
+      const updatedTask = {
+        ...editingTask,
+        title: values.title,
+        deadline: values.deadline.format("YYYY-MM-DD"),
+        description: values.description,
       };
-    },
-    drop: (item: DragItem) => {
-      moveRow(item.index, index);
-    },
-  });
-  const [{ isDragging }, drag] = useDrag({
-    type: "row",
-    item: { index },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-  drop(drag(ref));
 
-  return (
-    <tr
-      ref={ref}
-      className={classNames(className, {
-        "drop-over": isOver,
-        "dragging-row": isDragging,
-      })}
-      style={{
-        cursor: "move",
-        opacity: isDragging ? 0.5 : 1,
-        ...style,
-      }}
-      {...restProps}
-    />
-  );
-};
+      try {
+        await updateTask({ id: editingTask.id, data: updatedTask }).unwrap();
+        message.success("Task updated successfully!");
+        setEditingTask(null);
+        setIsModalOpen(false);
+        refetch();
+      } catch (error: any) {
+        message.error(`Failed to update task: ${error.message}`);
+      }
+    }
+  };
 
-const DraggableTable: FC = () => {
-  const [dataSource, setDataSource] = useState<DataType[]>([
-    {
-      key: "1",
-      status: "On Track",
-      due: "Today",
-      task: "Run some errands in town",
-      created: "14 July 2024",
-      completed: false,
-    },
-    {
-      key: "2",
-      status: "On Track",
-      due: "30 July 2024",
-      task: "Buy PS4 Controller",
-      created: "14 July 2024",
-      edited: "14 July 2024",
-      completed: false,
-    },
-    {
-      key: "3",
-      status: "Done",
-      due: "10 July 2024",
-      task: "Finish project report",
-      created: "5 July 2024",
-      completed: true,
-    },
-    {
-      key: "4",
-      status: "Off-track",
-      due: "15 July 2024",
-      task: "Submit tax forms",
-      created: "10 July 2024",
-      completed: false,
-    },
-    {
-      key: "5",
-      status: "Done",
-      due: "12 July 2024",
-      task: "Renew car insurance",
-      created: "1 July 2024",
-      completed: true,
-    },
-    {
-      key: "6",
-      status: "On Track",
-      due: "20 July 2024",
-      task: "Prepare presentation for meeting",
-      created: "14 July 2024",
-      completed: false,
-    },
-    {
-      key: "7",
-      status: "Off-track",
-      due: "11 July 2024",
-      task: "Schedule doctor's appointment",
-      created: "5 July 2024",
-      completed: false,
-    },
-  ]);
+  const moveRow = async (dragIndex: number, hoverIndex: number) => {
+    const dragRow = dataSource[dragIndex];
+    const newData = [...dataSource];
+    newData.splice(dragIndex, 1);
+    newData.splice(hoverIndex, 0, dragRow);
+
+    setDataSource(newData);
+
+    // Create a payload with the new order
+    const payload = newData.map((task, index) => ({
+      id: task.id,
+      position: index + 1,
+    }));
+
+    try {
+      // Assuming you have a mutation or API call for updating the order
+      await updateTaskOrder(payload).unwrap();
+      message.success("Task order updated successfully!");
+    } catch (error: any) {
+      message.error(`Failed to update task order: ${error.message}`);
+    }
+  };
+
+  const handleDragStart = (
+    e: React.DragEvent<HTMLTableRowElement>,
+    index: number,
+  ) => {
+    e.dataTransfer.setData("dragIndex", index.toString());
+  };
+
+  const handleDrop = (
+    e: React.DragEvent<HTMLTableRowElement>,
+    index: number,
+  ) => {
+    const dragIndex = parseInt(e.dataTransfer.getData("dragIndex"), 10);
+    moveRow(dragIndex, index);
+  };
+
+  const formatDate = (dateString: string): string => {
+    return dayjs(dateString).format("MMMM D, YYYY");
+  };
+
+  const formatDeadline = (deadline: string): string => {
+    const now = dayjs();
+    const deadlineDate = dayjs(deadline);
+
+    if (deadlineDate.isSame(now, "day")) return "Due Today";
+    if (deadlineDate.isSame(now.subtract(1, "day"), "day"))
+      return "Due Yesterday";
+    return `Due ${formatDate(deadline)}`;
+  };
+
+  const formatCreatedOrUpdated = (dateString: string, type: string): string => {
+    return `${type} ${formatDate(dateString)}`;
+  };
+
+  const handleLabelClick = async (task: DataType) => {
+    const newStatus = task.status === "PENDING" ? "ON-TRACK" : "PENDING";
+    const updatedTask = { ...task, status: newStatus };
+
+    try {
+      await updateTask({ id: task.id, data: updatedTask }).unwrap();
+      message.success("Task status updated successfully!");
+      setDataSource((prevData) =>
+        prevData.map((item) =>
+          item.id === task.id ? { ...item, status: newStatus } : item,
+        ),
+      );
+    } catch (error: any) {
+      message.error(`Failed to update task status: ${error.message}`);
+    }
+  };
 
   const columns: ColumnsType<DataType> = [
     {
-      dataIndex: "key",
-      key: "key",
-      render: () => <DragOutlined style={{ cursor: "grab" }} />,
+      dataIndex: "drag",
+      key: "drag",
+      render: () => (
+        <HolderOutlined
+          style={{ cursor: "grab", transform: "rotate(90deg)" }}
+        />
+      ),
+    },
+    {
+      dataIndex: "number",
+      key: "number",
+      render: (_, __, index) => <>{index + 1}</>,
     },
     {
       dataIndex: "status",
       key: "status",
-      render: (text) => (
-        <Tag
-          color={
-            text === "Off-track" ? "red" : text === "Done" ? "gray" : "green"
-          }
-          style={{ minWidth: "100px", textAlign: "center" }}
+      render: (status: string, record) => {
+        const deadlineOverdue =
+          dayjs(record.deadline).isBefore(dayjs()) && status !== "DONE";
+
+        let color = "blue";
+        let text = "PENDING";
+
+        if (status === "DONE") {
+          color = "success";
+          text = "DONE";
+        } else if (status === "ON-TRACK") {
+          color = "gray";
+          text = "ON-TRACK";
+        } else if (deadlineOverdue) {
+          color = "red";
+          text = "OFF-TRACK";
+        }
+
+        return (
+          <Tag color={color} onClick={() => handleLabelClick(record)}>
+            {text}
+          </Tag>
+        );
+      },
+    },
+    {
+      dataIndex: "deadline",
+      key: "deadline",
+      render: (deadline: string) => formatDeadline(deadline),
+    },
+    {
+      dataIndex: "title",
+      key: "title",
+      render: (text: string, record: DataType) => (
+        <span
+          style={{ cursor: "pointer" }}
+          onClick={() => handleRowClick(record)}
         >
-          {text.toUpperCase()}
-        </Tag>
+          {text}
+        </span>
       ),
     },
     {
-      dataIndex: "due",
-      key: "due",
-    },
-    {
-      dataIndex: "task",
-      key: "task",
-    },
-    {
-      dataIndex: "created",
-      key: "created",
-    },
-    {
-      dataIndex: "edited",
-      key: "edited",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (createdAt: string, record) =>
+        record.status === "DONE"
+          ? formatCreatedOrUpdated(record.updatedAt, "Edited")
+          : formatCreatedOrUpdated(createdAt, "Created"),
     },
     {
       key: "actions",
-      render: () => (
+      render: (_, record) => (
         <Space size="middle">
           <Tooltip title="Edit">
-            <EditOutlined />
+            <EditOutlined onClick={() => handleEdit(record)} />
           </Tooltip>
           <Tooltip title="Delete">
-            <DeleteOutlined />
+            <DeleteOutlined onClick={() => handleDelete(record)} />
           </Tooltip>
         </Space>
       ),
     },
     {
-      dataIndex: "completed",
-      key: "completed",
-      render: (completed: boolean) => <Checkbox checked={completed} />,
+      dataIndex: "status",
+      key: "status-checkbox",
+      render: (status: string, record) => {
+        const isChecked = status === "DONE";
+        return (
+          <Checkbox
+            checked={isChecked}
+            style={{ color: "primary" }}
+            onChange={() => handleCheckboxChange(record)}
+          />
+        );
+      },
     },
   ];
 
-  const moveRow = (dragIndex: number, hoverIndex: number) => {
-    const dragRow = dataSource[dragIndex];
-    const newData = [...dataSource];
-    newData.splice(dragIndex, 1);
-    newData.splice(hoverIndex, 0, dragRow);
-    setDataSource(newData);
+  const handleCheckboxChange = async (task: DataType) => {
+    const updatedStatus = task.status === "DONE" ? "ON-TRACK" : "DONE";
+    const updatedTask = { ...task, status: updatedStatus };
+    try {
+      await updateTask({ id: task.id, data: updatedTask }).unwrap();
+      message.success("Task status updated successfully!");
+      setDataSource((prevData) =>
+        prevData.map((item) =>
+          item.id === task.id ? { ...item, status: updatedStatus } : item,
+        ),
+      );
+    } catch (error: any) {
+      message.error(`Failed to update task status: ${error.message}`);
+    }
+  };
+  const handleRowClick = (record: DataType) => {
+    setViewingTask(record);
+    setIsViewModalOpen(true);
   };
 
   return (
-    <DndProvider backend={HTML5Backend}>
+    <>
       <Table
         columns={columns}
         dataSource={dataSource}
-        components={{
-          body: {
-            row: DraggableBodyRow,
-          },
-        }}
         pagination={false}
         className="draggable-table"
-        onRow={(record, index) => ({
-          index: index!,
-          className: "draggable-row",
-          moveRow,
-        })}
         showHeader={false}
         scroll={{ x: "max-content" }}
+        loading={isLoading}
+        onRow={(record, index) => ({
+          index: index!,
+          draggable: true,
+          onDragStart: (e) => handleDragStart(e, index!),
+          onDrop: (e) => handleDrop(e, index!),
+          onDragOver: (e) => e.preventDefault(),
+        })}
       />
-    </DndProvider>
+      {/* Edit Task Modal */}
+      <Modal
+        title="Edit Task"
+        open={isModalOpen}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setEditingTask(null);
+          form.resetFields();
+        }}
+        footer={null}
+      >
+        <div>
+          <div>
+            <Form form={form} layout="vertical" onFinish={handleEditSave}>
+              <Row gutter={32}>
+                <Col span={12}>
+                  <Form.Item
+                    label="Title"
+                    name="title"
+                    rules={[
+                      { required: true, message: "Please enter a title" },
+                    ]}
+                  >
+                    <Input placeholder="Enter Title" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    label="Due date"
+                    name="deadline"
+                    rules={[
+                      { required: true, message: "Please select a date" },
+                    ]}
+                  >
+                    <DatePicker
+                      format="YYYY-MM-DD"
+                      suffixIcon={<CalendarOutlined />}
+                      style={{ padding: "10px", width: "100%" }}
+                      placeholder="--/--/--"
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={32}>
+                <Col span={24}>
+                  <Form.Item
+                    label="Description"
+                    name="description"
+                    rules={[
+                      { required: true, message: "Please enter a description" },
+                    ]}
+                  >
+                    <TextArea placeholder="Enter description" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <div className="flex justify-end">
+                <Button type="primary" className="mx-4" htmlType="submit">
+                  Edit <EditOutlined />
+                </Button>
+              </div>
+            </Form>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        title="Confirm Delete"
+        visible={!!deletingTask}
+        onOk={handleDeleteConfirm}
+        onCancel={() => setDeletingTask(null)}
+        okButtonProps={{ danger: true }}
+        okText="Delete"
+      >
+        <p>Are you sure you want to delete this task?</p>
+      </Modal>
+
+      <Modal
+        visible={isViewModalOpen}
+        onCancel={() => setIsViewModalOpen(false)}
+        footer={null}
+      >
+        <div className="p-6 space-y-4">
+          <h2 className="text-xl font-semibold">{viewingTask?.title}</h2>
+          <div className="flex items-center space-x-4">
+            <Tag
+              className="py-1 border-1 rounded-xl px-4"
+              color={viewingTask?.status === "DONE" ? "green" : "gray"}
+            >
+              {viewingTask?.status}
+            </Tag>
+            <span className="text-gray-500">
+              Due:{" "}
+              {viewingTask?.deadline
+                ? formatDeadline(viewingTask.deadline)
+                : "No deadline set"}
+            </span>
+          </div>
+          <p className="text-gray-700">{viewingTask?.description}</p>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">
+              {formatCreatedOrUpdated(viewingTask?.createdAt ?? "", "Created")}
+            </span>
+            <div className="space-x-2">
+              <Button
+                type="text"
+                icon={<EditOutlined />}
+                className="text-gray-500 hover:text-blue-600"
+              />
+              <Button
+                type="text"
+                icon={<DeleteOutlined />}
+                className="text-gray-500 hover:text-red-600"
+              />
+            </div>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 };
 
