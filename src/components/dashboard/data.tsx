@@ -1,18 +1,4 @@
-import React from "react";
-import {
-  CheckSquareOutlined,
-  DownOutlined,
-  UserOutlined,
-  LogoutOutlined,
-  HomeOutlined,
-  SettingOutlined,
-  SearchOutlined,
-  FilterOutlined,
-  FileOutlined,
-  CheckOutlined,
-  InfoCircleOutlined,
-  DragOutlined,
-} from "@ant-design/icons";
+import React, { useState, useMemo } from "react";
 import {
   Button,
   Card,
@@ -23,60 +9,164 @@ import {
   Space,
   theme,
   Statistic,
+  Select,
+  Typography,
 } from "antd";
-import type { MenuProps } from "antd";
-import { Typography } from "antd";
+import {
+  DownOutlined,
+  HolderOutlined,
+  FileOutlined,
+  CheckOutlined,
+  InfoCircleOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import DraggableTable from "../data/table";
+import { useFetchTasksQuery } from "@/lib/slices/apiSlice";
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
 
 const DashboardData = () => {
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
-  const handleMenuClick: MenuProps["onClick"] = (e) => {
-    console.log("click", e);
+  const [selectedFilter, setSelectedFilter] = useState<string | undefined>(
+    undefined,
+  );
+  const [selectedSummaryPeriod, setSelectedSummaryPeriod] =
+    useState<string>("week");
+
+  const { data: tasksResponse, isLoading } = useFetchTasksQuery();
+
+  // Filter tasks based on the selected filter
+  const filteredTasks = useMemo(() => {
+    if (!tasksResponse || !Array.isArray(tasksResponse.data)) return [];
+    const tasks = tasksResponse.data;
+
+    // Filter by status
+    let filteredByStatus = tasks;
+    if (selectedFilter) {
+      filteredByStatus = tasks.filter(
+        (task: any) => task.status === selectedFilter.toUpperCase(),
+      );
+    }
+
+    // Filter by search term
+    return filteredByStatus.filter((task: any) =>
+      task.title.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [tasksResponse, selectedFilter, searchTerm]);
+
+  const handleFilterChange = (value: string) => {
+    if (value === "clear") {
+      handleClearFilters();
+    } else {
+      setSelectedFilter(value);
+    }
   };
 
-  const items: MenuProps["items"] = [
-    {
-      label: "Logout",
-      key: "1",
-      icon: <LogoutOutlined />,
-    },
-  ];
-
-  const filterItems = [
-    { label: "Done", key: "done" },
-    { label: "Off-track", key: "off-track" },
-    { label: "Pending", key: "pending" },
-  ];
-
-  const summaryItems = [
-    { label: "Today", key: "today" },
-    { label: "Week", key: "week" },
-    { label: "Month", key: "month" },
-  ];
-
-  const menuProps = {
-    items,
-    onClick: handleMenuClick,
+  // Function to clear all filters
+  const handleClearFilters = () => {
+    setSelectedFilter(undefined);
+    setSearchTerm("");
   };
+
+  const handleSummaryPeriodChange = (value: string) => {
+    setSelectedSummaryPeriod(value);
+  };
+
+  // Calculate summary statistics
+  const calculateStatistics = () => {
+    if (!tasksResponse || !Array.isArray(tasksResponse.data)) return {};
+
+    const tasks = tasksResponse.data;
+    const today = new Date();
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const startOfWeek = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() - today.getDay(),
+    );
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    const filteredByPeriod = (period: string) => {
+      if (period === "today") {
+        return tasks.filter(
+          (task: any) => new Date(task.deadline) >= startOfToday,
+        );
+      }
+      if (period === "week") {
+        return tasks.filter(
+          (task: any) => new Date(task.deadline) >= startOfWeek,
+        );
+      }
+      if (period === "month") {
+        return tasks.filter(
+          (task: any) => new Date(task.deadline) >= startOfMonth,
+        );
+      }
+      return tasks;
+    };
+
+    return {
+      totalTasks: filteredByPeriod(selectedSummaryPeriod).length,
+      completedTasks: filteredByPeriod(selectedSummaryPeriod).filter(
+        (task: any) => task.status === "DONE",
+      ).length,
+      pendingTasks: filteredByPeriod(selectedSummaryPeriod).filter(
+        (task: any) => task.status === "PENDING",
+      ).length,
+      offTrackTasks: filteredByPeriod(selectedSummaryPeriod).filter(
+        (task: any) => task.status === "OFF-TRACK",
+      ).length,
+    };
+  };
+
+  const summaryStats = calculateStatistics();
 
   return (
     <>
-      <div className="bg-white flex flex-col md:flex-row justify-between items-center px-6 py-2 mx-auto rounded-lg mt-5 mx-5">
-        <span className="text-lg">Pending tasks - 7</span>
+      <div className="bg-white flex flex-col md:flex-row justify-between items-center px-6 py-2 mx-auto rounded-lg mx-5">
+        <span className="text-lg">
+          Pending tasks - {summaryStats.pendingTasks}
+        </span>
 
         <Input
           prefix={<SearchOutlined />}
           placeholder="Search tasks"
           className="w-full md:w-1/3 my-2 md:my-0 mx-4"
+          value={searchTerm}
+          onChange={handleSearchChange}
         />
 
-        <Dropdown menu={{ items: filterItems }}>
+        <Dropdown
+          overlay={
+            <Menu>
+              <Menu.Item onClick={() => handleFilterChange("done")}>
+                Done
+              </Menu.Item>
+              <Menu.Item onClick={() => handleFilterChange("off-track")}>
+                Off-track
+              </Menu.Item>
+              <Menu.Item onClick={() => handleFilterChange("pending")}>
+                Pending
+              </Menu.Item>
+              <Menu.Item onClick={() => handleFilterChange("clear")}>
+                Clear Filter
+              </Menu.Item>
+            </Menu>
+          }
+        >
           <Button className="w-full md:w-auto">
             Filter List <DownOutlined />
           </Button>
@@ -86,7 +176,7 @@ const DashboardData = () => {
       <Layout>
         <Sider
           className="rounded-lg"
-          width={350}
+          width={400}
           style={{
             background: colorBgContainer,
             margin: "20px 0px 0px 0px",
@@ -97,78 +187,93 @@ const DashboardData = () => {
           <div className="p-4">
             <Title level={5}>Summary</Title>
 
-            <Dropdown menu={{ items: summaryItems }}>
-              <Button style={{ width: "100%" }}>
-                <Space>
-                  <FilterOutlined />
-                  This Week
-                  <DownOutlined />
-                </Space>
-              </Button>
-            </Dropdown>
+            <Select
+              defaultValue="week"
+              style={{ width: "100%" }}
+              onChange={handleSummaryPeriodChange}
+            >
+              <Select.Option value="today">Today</Select.Option>
+              <Select.Option value="week">This Week</Select.Option>
+              <Select.Option value="month">This Month</Select.Option>
+            </Select>
 
             <div className="grid grid-cols-2 gap-2 mt-4">
-              {[
-                {
-                  value: 11,
-                  label: "Total Tasks",
-                  icon: <FileOutlined />,
-                  change: "+10%",
-                },
-                {
-                  value: 1,
-                  label: "Completed",
-                  icon: <CheckOutlined />,
-                  change: "-10%",
-                },
-                {
-                  value: 7,
-                  label: "Pending",
-                  icon: <InfoCircleOutlined />,
-                  change: "+10%",
-                },
-                {
-                  value: 3,
-                  label: "Off-Track",
-                  icon: <InfoCircleOutlined />,
-                  change: "+10%",
-                },
-              ].map((item, index) => (
-                <Card
-                  key={index}
-                  className="shadow-sm rounded-lg"
-                  style={{
-                    borderRadius: "6px",
-                    border: "1px solid #e0e0e0",
-                    padding: "8px",
-                  }}
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-start">
-                      <Statistic
-                        value={item.value}
-                        precision={0}
-                        valueStyle={{ fontSize: "20px", color: "#1f2937" }}
-                      />
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          color: "#1f2937",
-                          position: "relative",
-                          top: "-8px",
-                          marginLeft: "2px",
-                        }}
-                      >
-                        {item.change}
-                      </span>
-                    </div>
-                    {item.icon}
-                  </div>
-                  <div className="mt-1 text-gray-500 text-xs">{item.label}</div>
-                </Card>
-              ))}
-            </div>
+              <Card
+                className="shadow-sm rounded-lg"
+                style={{
+                  borderRadius: "6px",
+                  border: "1px solid #e0e0e0",
+                  padding: "2px",
+                }}
+              >
+                <div className="flex justify-between items-center">
+                  <Statistic
+                    value={summaryStats.totalTasks}
+                    precision={0}
+                    valueStyle={{ fontSize: "20px", color: "#1f2937" }}
+                  />
+                  <FileOutlined />
+                </div>
+                <div className="mt-1 text-gray-500 text-xs">Total Tasks</div>
+              </Card>
 
+              <Card
+                className="shadow-sm rounded-lg"
+                style={{
+                  borderRadius: "6px",
+                  border: "1px solid #e0e0e0",
+                  padding: "2px",
+                }}
+              >
+                <div className="flex justify-between items-center">
+                  <Statistic
+                    value={summaryStats.completedTasks}
+                    precision={0}
+                    valueStyle={{ fontSize: "20px", color: "#1f2937" }}
+                  />
+                  <CheckOutlined />
+                </div>
+                <div className="mt-1 text-gray-500 text-xs">Completed</div>
+              </Card>
+
+              <Card
+                className="shadow-sm rounded-lg"
+                style={{
+                  borderRadius: "6px",
+                  border: "1px solid #e0e0e0",
+                  padding: "2px",
+                }}
+              >
+                <div className="flex justify-between items-center">
+                  <Statistic
+                    value={summaryStats.pendingTasks}
+                    precision={0}
+                    valueStyle={{ fontSize: "20px", color: "#1f2937" }}
+                  />
+                  <InfoCircleOutlined />
+                </div>
+                <div className="mt-1 text-gray-500 text-xs">Pending</div>
+              </Card>
+
+              <Card
+                className="shadow-sm rounded-lg"
+                style={{
+                  borderRadius: "6px",
+                  border: "1px solid #e0e0e0",
+                  padding: "2px",
+                }}
+              >
+                <div className="flex justify-between items-center">
+                  <Statistic
+                    value={summaryStats.offTrackTasks}
+                    precision={0}
+                    valueStyle={{ fontSize: "20px", color: "#1f2937" }}
+                  />
+                  <InfoCircleOutlined />
+                </div>
+                <div className="mt-1 text-gray-500 text-xs">Off-Track</div>
+              </Card>
+            </div>
             <Card
               className="shadow-sm bg-gray-100 rounded-lg mt-4"
               style={{
@@ -179,7 +284,9 @@ const DashboardData = () => {
             >
               <div className="text-gray-500 text-xs">Daily Tip:</div>
               <div className="mt-1 flex items-center">
-                <DragOutlined style={{ fontSize: "20px", color: "#9ca3af" }} />
+                <HolderOutlined
+                  style={{ cursor: "grab", transform: "rotate(90deg)" }}
+                />
                 <span className="ml-2 text-xs">
                   Use this icon on the left to re-arrange tasks
                 </span>
@@ -188,17 +295,19 @@ const DashboardData = () => {
           </div>
         </Sider>
 
-        <Layout style={{ padding: "0 24px 24px" }}>
+        <Layout style={{ padding: "20px" }}>
           <Content
+            className="p-4"
             style={{
               padding: 24,
               marginTop: "20px",
               minHeight: 280,
               background: colorBgContainer,
+              margin: 0,
               borderRadius: borderRadiusLG,
             }}
           >
-            <DraggableTable />
+            <DraggableTable data={filteredTasks} />
           </Content>
         </Layout>
       </Layout>

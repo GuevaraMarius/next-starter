@@ -20,9 +20,12 @@ import {
   Form,
   Input,
   Row,
+  message,
 } from "antd";
 import type { MenuProps } from "antd";
 import { useRouter } from "next/router";
+import { useAddTaskMutation } from "lib/slices/apiSlice";
+import dayjs from "dayjs";
 const { TextArea } = Input;
 const { Header } = Layout;
 const { Title } = Typography;
@@ -33,15 +36,38 @@ interface AppHeaderProps {
 
 const AppHeader: React.FC<AppHeaderProps> = ({ onNavigate }) => {
   const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form] = Form.useForm();
+  const [addTask] = useAddTaskMutation(); // Hook for adding a task
+
   const handleMenuClick: MenuProps["onClick"] = (e) => {
     if (e.key === "1") {
+      localStorage.removeItem("access_token");
       router.push("/login");
     }
   };
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = () => {
     setIsModalOpen(true);
+  };
+
+  const handleFinish = async (values: any) => {
+    try {
+      await addTask({
+        title: values.title,
+        description: values.description,
+        deadline: values.deadline.format("YYYY-MM-DD"),
+      }).unwrap();
+      message.success("Task added successfully");
+      setIsModalOpen(false);
+      form.resetFields();
+    } catch (error) {
+      message.error("Failed to add task");
+      console.log(error);
+    }
+  };
+  const disabledDate = (current: any) => {
+    return current && current.isBefore(dayjs().startOf("day"), "day");
   };
 
   const items: MenuProps["items"] = [
@@ -131,10 +157,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onNavigate }) => {
         <div className="flex flex-col items-center justify-center">
           <div className="bg-white w-full max-w-lg md:max-w-2xl rounded-lg overflow-hidden p-4">
             <Title level={4}>New Task</Title>
-            <Form layout="vertical">
+            <Form form={form} layout="vertical" onFinish={handleFinish}>
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item label="Todo" name="todo">
+                  <Form.Item
+                    label="Todo"
+                    name="title"
+                    rules={[
+                      { required: true, message: "Please enter a title" },
+                    ]}
+                  >
                     <Input
                       prefix={<UserOutlined />}
                       placeholder="Enter Title"
@@ -142,8 +174,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onNavigate }) => {
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item label="Due date" name="dueDate">
+                  <Form.Item
+                    label="Due date"
+                    name="deadline"
+                    rules={[
+                      { required: true, message: "Please select a date" },
+                    ]}
+                  >
                     <DatePicker
+                      disabledDate={disabledDate}
                       suffixIcon={<CalendarOutlined />}
                       style={{ padding: "10px", width: "100%" }}
                       placeholder="--/--/--"
@@ -153,17 +192,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onNavigate }) => {
               </Row>
               <Row gutter={32}>
                 <Col span={24}>
-                  <Form.Item label="Description" name="description">
+                  <Form.Item
+                    label="Description"
+                    name="description"
+                    rules={[
+                      { required: true, message: "Please enter a description" },
+                    ]}
+                  >
                     <TextArea placeholder="Enter description" />
                   </Form.Item>
                 </Col>
               </Row>
               <div className="flex justify-end">
-                <Button
-                  type="primary"
-                  className="mx-4"
-                  onClick={() => setIsModalOpen(false)}
-                >
+                <Button type="primary" className="mx-4" htmlType="submit">
                   Add Task +
                 </Button>
               </div>

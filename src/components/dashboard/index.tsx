@@ -4,6 +4,7 @@ import AppHeader from "../shared/header";
 import AppFooter from "../shared/footer";
 import DashboardData from "./data";
 import Settings from "./settings";
+import withAuth from "../withAuth";
 
 const { Content } = Layout;
 
@@ -30,4 +31,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default withAuth(Dashboard);
