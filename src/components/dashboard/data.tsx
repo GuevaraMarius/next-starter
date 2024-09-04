@@ -87,31 +87,34 @@ const DashboardData = () => {
 
     const tasks = tasksResponse.data;
     const today = new Date();
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
     const startOfWeek = new Date(
-      today.setDate(today.getDate() - today.getDay()),
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() - today.getDay(),
     );
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(
-      (task: any) => task.status === "DONE",
-    ).length;
-    const pendingTasks = tasks.filter(
-      (task: any) => task.status === "PENDING",
-    ).length;
-    const offTrackTasks = tasks.filter(
-      (task: any) => task.status === "OFF-TRACK",
-    ).length;
-
     const filteredByPeriod = (period: string) => {
-      if (period === "week")
+      if (period === "today") {
+        return tasks.filter(
+          (task: any) => new Date(task.deadline) >= startOfToday,
+        );
+      }
+      if (period === "week") {
         return tasks.filter(
           (task: any) => new Date(task.deadline) >= startOfWeek,
         );
-      if (period === "month")
+      }
+      if (period === "month") {
         return tasks.filter(
           (task: any) => new Date(task.deadline) >= startOfMonth,
         );
+      }
       return tasks;
     };
 

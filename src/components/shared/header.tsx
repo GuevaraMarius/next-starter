@@ -24,8 +24,8 @@ import {
 } from "antd";
 import type { MenuProps } from "antd";
 import { useRouter } from "next/router";
-import { useAddTaskMutation } from "lib/slices/apiSlice"; // Assuming apiSlice is correctly set up
-
+import { useAddTaskMutation } from "lib/slices/apiSlice";
+import dayjs from "dayjs";
 const { TextArea } = Input;
 const { Header } = Layout;
 const { Title } = Typography;
@@ -65,6 +65,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onNavigate }) => {
       message.error("Failed to add task");
       console.log(error);
     }
+  };
+  const disabledDate = (current: any) => {
+    return current && current.isBefore(dayjs().startOf("day"), "day");
   };
 
   const items: MenuProps["items"] = [
@@ -179,6 +182,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onNavigate }) => {
                     ]}
                   >
                     <DatePicker
+                      disabledDate={disabledDate}
                       suffixIcon={<CalendarOutlined />}
                       style={{ padding: "10px", width: "100%" }}
                       placeholder="--/--/--"

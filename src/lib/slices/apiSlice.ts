@@ -4,9 +4,8 @@ interface UpdateTaskOrderDto {
 }
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: "http://localhost:8000/",
+  baseUrl: "https://nest-starter-0wb4.onrender.com/",
   prepareHeaders: (headers, { endpoint }) => {
-    // Add Authorization header only for 'tasks' related endpoints
     const token = localStorage.getItem("access_token");
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
@@ -84,6 +83,16 @@ export const apiSlice = createApi({
         body: { email },
       }),
     }),
+    resetPassword: builder.mutation<
+      any,
+      { token: string; newPassword: string }
+    >({
+      query: (body) => ({
+        url: "/auth/reset-password",
+        method: "POST",
+        body,
+      }),
+    }),
     getProfile: builder.query<any, void>({
       query: () => "user/profile",
     }),
@@ -101,4 +110,5 @@ export const {
   useGetProfileQuery,
   useUpdateTaskOrderMutation,
   useForgotPasswordMutation,
+  useResetPasswordMutation,
 } = apiSlice;

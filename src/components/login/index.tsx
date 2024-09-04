@@ -27,7 +27,7 @@ const Login = () => {
       localStorage.setItem("access_token", response.access_token);
       router.push("/dashboard");
     } catch (error: any) {
-      const errorMessage = error?.data?.message || "Login failed!";
+      const errorMessage = error?.data?.message || "Invalid credentials";
       message.error(errorMessage);
     }
   };

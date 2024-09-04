@@ -16,12 +16,13 @@ import {
   LoginOutlined,
 } from "@ant-design/icons";
 import { useRegisterUserMutation } from "lib/slices/apiSlice";
-
+import { useRouter } from "next/router";
 const { Title } = Typography;
 
 const Signup = () => {
   const [register, { isLoading }] = useRegisterUserMutation();
   const [form] = Form.useForm();
+  const router = useRouter();
 
   const onFinish = async (values: any) => {
     try {
@@ -33,6 +34,7 @@ const Signup = () => {
       } else {
         message.success("Registration successful!");
         form.resetFields();
+        router.push("/login");
       }
     } catch (error: any) {
       const errorMsg = error?.data?.message || "Registration failed!";

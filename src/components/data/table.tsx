@@ -182,6 +182,9 @@ const DraggableTable: FC<{ data: DataType[] }> = ({ data }) => {
       message.error(`Failed to update task status: ${error.message}`);
     }
   };
+  const disabledDate = (current: any) => {
+    return current && current.isBefore(dayjs().startOf("day"), "day");
+  };
 
   const columns: ColumnsType<DataType> = [
     {
@@ -353,6 +356,7 @@ const DraggableTable: FC<{ data: DataType[] }> = ({ data }) => {
                     ]}
                   >
                     <DatePicker
+                      disabledDate={disabledDate}
                       format="YYYY-MM-DD"
                       suffixIcon={<CalendarOutlined />}
                       style={{ padding: "10px", width: "100%" }}
